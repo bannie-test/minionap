@@ -1,0 +1,6 @@
+{
+  "name": "Interactive Wedding Adventure & Invitation",
+  "description": "A delightful 2D platformer adventure leading to an elegant interactive digital wedding invitation with RSVP, wishes wall, and story.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
