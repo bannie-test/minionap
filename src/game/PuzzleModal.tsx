@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, AlertCircle, FastForward, Sparkles, HelpCircle, ArrowRight, Heart } from 'lucide-react';
 import { Puzzle } from '../types';
 import { soundManager } from '../audio/soundManager';
-import { gameCollectibles } from '../config/weddingData';
+import { gameCollectibles, KEEPSAKE_CATEGORIES } from '../config/weddingData';
 
 interface PuzzleModalProps {
   puzzle: Puzzle | null;
@@ -29,6 +29,14 @@ export const PuzzleModal: React.FC<PuzzleModalProps> = ({
   const matchedKeepsake = puzzle.rewardCollectibleId
     ? gameCollectibles.find(c => c.id === puzzle.rewardCollectibleId)
     : null;
+
+  const categoryInfo = KEEPSAKE_CATEGORIES.find(c => c.id === puzzle.category) || {
+    id: puzzle.category,
+    name: puzzle.categoryLabel || puzzle.category.replace('_', ' '),
+    icon: '💖',
+    badgeColor: 'bg-rose-100 text-rose-800 border-rose-200',
+    description: ''
+  };
 
   const handleSelectOption = (index: number) => {
     soundManager.playClick();
@@ -66,12 +74,12 @@ export const PuzzleModal: React.FC<PuzzleModalProps> = ({
           {/* Header Banner */}
           <div className="bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-300 px-6 py-4 flex items-center justify-between border-b border-amber-200">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">🧩</span>
+              <span className="text-2xl">{categoryInfo.icon}</span>
               <div>
-                <span className="text-xs uppercase tracking-wider font-bold text-amber-900 bg-white/60 px-2 py-0.5 rounded-full">
-                  {puzzle.category.replace('_', ' ')}
+                <span className="text-xs uppercase tracking-wider font-bold text-amber-900 bg-white/70 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <span>{categoryInfo.name}</span>
                 </span>
-                <h3 className="text-lg font-bold text-stone-900 font-display">
+                <h3 className="text-lg font-bold text-stone-900 font-display mt-0.5">
                   Wedding Riddle Checkpoint
                 </h3>
               </div>
@@ -91,6 +99,17 @@ export const PuzzleModal: React.FC<PuzzleModalProps> = ({
 
           {/* Body */}
           <div className="p-6">
+            <div className="flex items-center justify-between text-xs text-stone-500 mb-2">
+              <span className="font-semibold text-amber-800">
+                Category: {categoryInfo.name}
+              </span>
+              {matchedKeepsake && (
+                <span className="text-rose-600 font-medium">
+                  Unlocks: {matchedKeepsake.icon} {matchedKeepsake.title}
+                </span>
+              )}
+            </div>
+
             <h4 className="text-lg sm:text-xl font-semibold text-stone-800 mb-5 leading-snug">
               {puzzle.question}
             </h4>
@@ -152,14 +171,14 @@ export const PuzzleModal: React.FC<PuzzleModalProps> = ({
                       <motion.div
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mt-3 p-3 rounded-xl bg-gradient-to-r from-amber-100 to-rose-100 border border-amber-300 flex items-center gap-3 text-left shadow-xs"
+                        className="mt-3 p-3 rounded-xl bg-gradient-to-r from-amber-100 via-rose-100 to-amber-100 border border-amber-300 flex items-center gap-3 text-left shadow-xs"
                       >
                         <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-2xl flex-shrink-0 border border-amber-200">
                           {matchedKeepsake.icon}
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-800 bg-rose-200/80 px-2 py-0.5 rounded-full inline-block mb-0.5">
-                            🎁 Keepsake Added to Backpack!
+                            🎁 Keepsake Counted to {categoryInfo.name}!
                           </span>
                           <h6 className="font-bold text-stone-900 text-xs sm:text-sm truncate">
                             {matchedKeepsake.title}
@@ -191,7 +210,7 @@ export const PuzzleModal: React.FC<PuzzleModalProps> = ({
                   onClick={handleContinue}
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm"
                 >
-                  <span>Continue Path ➜</span>
+                  <span>Continue Path from Here ➜</span>
                 </button>
               ) : isSubmitted && !isCorrect ? (
                 <button

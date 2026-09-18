@@ -7,29 +7,39 @@ service cloud.firestore {
       return val is string && val.size() >= minLen && val.size() <= maxLen;
     }
 
-    // Special guest roster table
+    // Special guest roster table - managed directly from database
     match /special_guest_roster/{guestId} {
-      allow read: if true;
-      allow write: if true; // Allow guest table management from admin interface
+      allow read, write: if true;
     }
 
     // Wedding wishes guestbook
     match /wedding_wishes/{wishId} {
-      allow read: if true;
-      allow create: if request.resource.data.guestName is string
-                    && request.resource.data.message is string
-                    && request.resource.data.guestName.size() > 0
-                    && request.resource.data.message.size() > 0;
-      allow update, delete: if true;
+      allow read, write: if true;
     }
 
-    // Wedding RSVPs
+    // Wedding RSVPs table
     match /wedding_rsvps/{rsvpId} {
-      allow read: if true;
-      allow create: if request.resource.data.guestName is string
-                    && request.resource.data.guestCount is number
-                    && request.resource.data.guestName.size() > 0;
-      allow update, delete: if true;
+      allow read, write: if true;
+    }
+
+    // Player adventure progress table
+    match /player_progress/{playerId} {
+      allow read, write: if true;
+    }
+
+    // Wedding keepsakes catalog table
+    match /wedding_keepsakes/{keepsakeId} {
+      allow read, write: if true;
+    }
+
+    // Wedding couple trivia quizzes table
+    match /wedding_quizzes/{quizId} {
+      allow read, write: if true;
+    }
+
+    // Wedding timeline and schedule table
+    match /wedding_timeline/{eventId} {
+      allow read, write: if true;
     }
 
     // Connection test document

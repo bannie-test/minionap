@@ -9,6 +9,7 @@ interface GameCanvasProps {
   currentWorld: number;
   playerName: string;
   isSpecialMember?: boolean;
+  isPaused?: boolean;
   continuePathTrigger?: number;
   collectedIds: string[];
   solvedPuzzleIds: string[];
@@ -49,6 +50,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   currentWorld,
   playerName,
   isSpecialMember = false,
+  isPaused = false,
   continuePathTrigger = 0,
   collectedIds,
   solvedPuzzleIds,
@@ -77,16 +79,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   // Track desired spawn position if traveling between gates
   const spawnXRef = useRef<number | null>(null);
+  const activeWorldRef = useRef<number | null>(null);
 
-  // When gift is collected or quiz is solved, smoothly continue character along path
+  // Keep references to collectedIds and solvedPuzzleIds so initWorld doesn't recreate every time they change
+  const collectedIdsRef = useRef(collectedIds);
+  collectedIdsRef.current = collectedIds;
+  const solvedPuzzleIdsRef = useRef(solvedPuzzleIds);
+  solvedPuzzleIdsRef.current = solvedPuzzleIds;
+
+  // When gift is collected or quiz is solved, smoothly continue character along path from their current position
   useEffect(() => {
     if (continuePathTrigger && continuePathTrigger > 0) {
       const p = stateRef.current.player;
-      p.vx = 3.2;
+      p.vx = 3.5;
       p.facing = 'right';
       p.state = 'walk';
-      p.stateTimer = 22;
+      p.stateTimer = 25;
       keysRef.current.interact = false;
+      keysRef.current.left = false;
+      keysRef.current.right = false;
+      keysRef.current.jump = false;
     }
   }, [continuePathTrigger]);
 
@@ -124,14 +136,38 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   // Initialize World Geometry & Entities for each of the 4 Seasons
   const initWorld = useCallback((worldNum: number, initialX?: number) => {
     const s = stateRef.current;
-    s.player.x = initialX !== undefined ? initialX : (spawnXRef.current !== null ? spawnXRef.current : 140);
-    spawnXRef.current = null;
-    s.player.y = 500 - s.player.height; // Firmly positioned on solid ground
-    s.player.vx = 0;
-    s.player.vy = 0;
-    s.player.isGrounded = true;
-    s.player.state = 'idle';
-    s.camera.x = Math.max(0, s.player.x - 300);
+    const isDifferentWorld = activeWorldRef.current !== worldNum;
+    activeWorldRef.current = worldNum;
+
+    // Only set player position when entering a new world or when explicit coordinates are requested
+    if (initialX !== undefined) {
+      s.player.x = initialX;
+      s.player.y = 500 - s.player.height;
+      s.player.vx = 0;
+      s.player.vy = 0;
+      s.player.isGrounded = true;
+      s.player.state = 'idle';
+      s.camera.x = Math.max(0, s.player.x - 300);
+    } else if (spawnXRef.current !== null) {
+      s.player.x = spawnXRef.current;
+      spawnXRef.current = null;
+      s.player.y = 500 - s.player.height;
+      s.player.vx = 0;
+      s.player.vy = 0;
+      s.player.isGrounded = true;
+      s.player.state = 'idle';
+      s.camera.x = Math.max(0, s.player.x - 300);
+    } else if (isDifferentWorld) {
+      // Brand new world transition: spawn at entrance
+      s.player.x = 140;
+      s.player.y = 500 - s.player.height;
+      s.player.vx = 0;
+      s.player.vy = 0;
+      s.player.isGrounded = true;
+      s.player.state = 'idle';
+      s.camera.x = 0;
+    }
+    // CRUCIAL: If worldNum is the same world, preserve s.player.x, s.player.y, and camera exactly where they are!
 
     // Background clouds
     s.clouds = [
@@ -237,14 +273,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Collectibles in Winter
       s.collectibles = [
-        { id: 'col_winter_cocoa', x: 370, y: 360, icon: '☕', collected: collectedIds.includes('col_winter_cocoa'), floatPhase: 0 },
-        { id: 'col_winter_crystal', x: 1040, y: 270, icon: '❄️', collected: collectedIds.includes('col_winter_crystal'), floatPhase: 1 }
+        { id: 'col_winter_cocoa', x: 370, y: 360, icon: '☕', collected: collectedIdsRef.current.includes('col_winter_cocoa'), floatPhase: 0 },
+        { id: 'col_winter_crystal', x: 1040, y: 270, icon: '❄️', collected: collectedIdsRef.current.includes('col_winter_crystal'), floatPhase: 1 }
       ];
 
       // 2 Easy Quizzes in World 1
       s.puzzleCheckpoints = [
-        { id: 'puz_winter_1', x: 595, y: 420, numberLabel: 1, solved: solvedPuzzleIds.includes('puz_winter_1') },
-        { id: 'puz_winter_2', x: 1140, y: 420, numberLabel: 2, solved: solvedPuzzleIds.includes('puz_winter_2') }
+        { id: 'puz_winter_1', x: 595, y: 420, numberLabel: 1, solved: solvedPuzzleIdsRef.current.includes('puz_winter_1') },
+        { id: 'puz_winter_2', x: 1140, y: 420, numberLabel: 2, solved: solvedPuzzleIdsRef.current.includes('puz_winter_2') }
       ];
 
       // Gates: Left is Start; Right leads to Garden Gate
@@ -278,14 +314,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Collectibles in Spring
       s.collectibles = [
-        { id: 'col_spring_blossom', x: 540, y: 280, icon: '🌸', collected: collectedIds.includes('col_spring_blossom'), floatPhase: 0.5 },
-        { id: 'col_spring_polaroid', x: 990, y: 240, icon: '📷', collected: collectedIds.includes('col_spring_polaroid'), floatPhase: 1.2 }
+        { id: 'col_spring_blossom', x: 540, y: 280, icon: '🌸', collected: collectedIdsRef.current.includes('col_spring_blossom'), floatPhase: 0.5 },
+        { id: 'col_spring_polaroid', x: 990, y: 240, icon: '📷', collected: collectedIdsRef.current.includes('col_spring_polaroid'), floatPhase: 1.2 }
       ];
 
       // 2 Easy Quizzes in World 2
       s.puzzleCheckpoints = [
-        { id: 'puz_spring_1', x: 540, y: 420, numberLabel: 1, solved: solvedPuzzleIds.includes('puz_spring_1') },
-        { id: 'puz_spring_2', x: 1100, y: 420, numberLabel: 2, solved: solvedPuzzleIds.includes('puz_spring_2') }
+        { id: 'puz_spring_1', x: 540, y: 420, numberLabel: 1, solved: solvedPuzzleIdsRef.current.includes('puz_spring_1') },
+        { id: 'puz_spring_2', x: 1100, y: 420, numberLabel: 2, solved: solvedPuzzleIdsRef.current.includes('puz_spring_2') }
       ];
 
       // Gates: Garden Gates for seamless seasonal transitions
@@ -319,14 +355,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Collectibles in Summer
       s.collectibles = [
-        { id: 'col_summer_shades', x: 560, y: 270, icon: '🕶️', collected: collectedIds.includes('col_summer_shades'), floatPhase: 0.3 },
-        { id: 'col_summer_ring', x: 1030, y: 230, icon: '💍', collected: collectedIds.includes('col_summer_ring'), floatPhase: 0.9 }
+        { id: 'col_summer_shades', x: 560, y: 270, icon: '🕶️', collected: collectedIdsRef.current.includes('col_summer_shades'), floatPhase: 0.3 },
+        { id: 'col_summer_ring', x: 1030, y: 230, icon: '💍', collected: collectedIdsRef.current.includes('col_summer_ring'), floatPhase: 0.9 }
       ];
 
       // 2 Easy Quizzes in World 3
       s.puzzleCheckpoints = [
-        { id: 'puz_summer_1', x: 550, y: 420, numberLabel: 1, solved: solvedPuzzleIds.includes('puz_summer_1') },
-        { id: 'puz_summer_2', x: 1100, y: 420, numberLabel: 2, solved: solvedPuzzleIds.includes('puz_summer_2') }
+        { id: 'puz_summer_1', x: 550, y: 420, numberLabel: 1, solved: solvedPuzzleIdsRef.current.includes('puz_summer_1') },
+        { id: 'puz_summer_2', x: 1100, y: 420, numberLabel: 2, solved: solvedPuzzleIdsRef.current.includes('puz_summer_2') }
       ];
 
       // Gates: Garden Gates with seasonal flowers
@@ -360,14 +396,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
       // Collectibles in Autumn
       s.collectibles = [
-        { id: 'col_autumn_wine', x: 540, y: 270, icon: '🍷', collected: collectedIds.includes('col_autumn_wine'), floatPhase: 0.4 },
-        { id: 'col_autumn_scroll', x: 1020, y: 240, icon: '💌', collected: collectedIds.includes('col_autumn_scroll'), floatPhase: 0.8 }
+        { id: 'col_autumn_wine', x: 540, y: 270, icon: '🍷', collected: collectedIdsRef.current.includes('col_autumn_wine'), floatPhase: 0.4 },
+        { id: 'col_autumn_scroll', x: 1020, y: 240, icon: '💌', collected: collectedIdsRef.current.includes('col_autumn_scroll'), floatPhase: 0.8 }
       ];
 
       // 2 Easy Quizzes in World 4
       s.puzzleCheckpoints = [
-        { id: 'puz_autumn_1', x: 530, y: 420, numberLabel: 1, solved: solvedPuzzleIds.includes('puz_autumn_1') },
-        { id: 'puz_autumn_2', x: 1080, y: 420, numberLabel: 2, solved: solvedPuzzleIds.includes('puz_autumn_2') }
+        { id: 'puz_autumn_1', x: 530, y: 420, numberLabel: 1, solved: solvedPuzzleIdsRef.current.includes('puz_autumn_1') },
+        { id: 'puz_autumn_2', x: 1080, y: 420, numberLabel: 2, solved: solvedPuzzleIdsRef.current.includes('puz_autumn_2') }
       ];
 
       // Gates: Left goes BACK to World 3; Right is THE GRAND WEDDING GATE!
@@ -375,15 +411,34 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       // THE WEDDING GATE
       s.forwardGate = { x: 1390, y: 270, width: 130, height: 230, isWeddingGate: true, targetWorld: 0, label: '💒 Grand Wedding Gate' };
     }
-  }, [collectedIds, solvedPuzzleIds]);
+  }, []);
 
   useEffect(() => {
-    initWorld(currentWorld);
+    if (activeWorldRef.current !== currentWorld) {
+      initWorld(currentWorld);
+    }
   }, [currentWorld, initWorld]);
+
+  // Synchronize collected status of collectibles on-the-fly without resetting player position
+  useEffect(() => {
+    const s = stateRef.current;
+    s.collectibles.forEach((c) => {
+      c.collected = collectedIds.includes(c.id);
+    });
+  }, [collectedIds]);
+
+  // Synchronize solved status of puzzle checkpoints on-the-fly without resetting player position
+  useEffect(() => {
+    const s = stateRef.current;
+    s.puzzleCheckpoints.forEach((cp) => {
+      cp.solved = solvedPuzzleIds.includes(cp.id);
+    });
+  }, [solvedPuzzleIds]);
 
   // Handle keyboard inputs
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isPaused) return;
       soundManager.ensureContext();
 
       if (['ArrowLeft', 'KeyA'].includes(e.code)) {
@@ -442,6 +497,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     };
 
     const updatePhysics = () => {
+      if (isPaused) {
+        // Keep player safely stationary and grounded while answering quiz or viewing keepsake
+        const p = stateRef.current.player;
+        p.vx = 0;
+        p.state = 'idle';
+        return;
+      }
+
       const s = stateRef.current;
       const p = s.player;
       const keys = keysRef.current;
@@ -634,12 +697,13 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           if (!cp.solved) {
             const dist = Math.abs((p.x + p.width / 2) - cp.x);
             if (dist < 60) {
-              nearbyPrompt = `👑 Press [E] or tap OPEN for VIP Riddle #${cp.numberLabel}`;
+              const puzzle = gamePuzzles[cp.id];
+              const catLabel = puzzle?.categoryLabel || 'Love Trivia';
+              nearbyPrompt = `👑 Press [E] or tap OPEN for VIP Riddle #${cp.numberLabel} (${catLabel})`;
               activeCanInteract = true;
 
               if (keys.interact) {
                 keys.interact = false;
-                const puzzle = gamePuzzles[cp.id];
                 if (puzzle) {
                   onOpenPuzzle(puzzle);
                 }
@@ -2118,18 +2182,26 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               onOpenInventory();
             }}
             className="bg-amber-400 hover:bg-amber-500 text-stone-900 font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5 text-xs sm:text-sm transition-transform active:scale-95"
-            title="Open Wedding Keepsakes Backpack"
+            title="Open Wedding Keepsakes Backpack (Categorized from Quizzes)"
           >
             <Backpack className="w-4 h-4 text-stone-900" />
-            <span>{collectedIds.length}/{gameCollectibles.length}</span>
+            <span>Keepsakes {collectedIds.length}/{gameCollectibles.length}</span>
           </button>
 
-          {/* Quizzes Solved Badge - ONLY visible for special guest list members */}
+          {/* Quizzes Solved Badge - Clickable to open category keepsakes progress */}
           {isSpecialMember && (
-            <div className="hidden md:flex items-center gap-1.5 bg-emerald-600/90 text-white px-2.5 py-1 rounded-full text-xs font-semibold shadow-md">
+            <button
+              id="hud-quizzes-badge-btn"
+              onClick={() => {
+                soundManager.playClick();
+                onOpenInventory();
+              }}
+              className="hidden md:flex items-center gap-1.5 bg-emerald-600/90 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-full text-xs font-semibold shadow-md transition active:scale-95"
+              title="Click to view keepsake categories unlocked by quizzes"
+            >
               <span>🧩</span>
-              <span>{solvedPuzzleIds.length}/8 Solved</span>
-            </div>
+              <span>{solvedPuzzleIds.length}/8 Quizzes Counted</span>
+            </button>
           )}
         </div>
 

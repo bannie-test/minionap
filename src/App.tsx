@@ -357,6 +357,7 @@ export default function App() {
               currentWorld={currentWorld}
               playerName={playerName}
               isSpecialMember={isSpecialGuest(playerName)}
+              isPaused={activePuzzle !== null || activeGift !== null || showInventory || showAdminModal || showSkipModal || showLandingModal}
               continuePathTrigger={continuePathCounter}
               collectedIds={collectedIds}
               solvedPuzzleIds={solvedPuzzleIds}
@@ -507,6 +508,7 @@ export default function App() {
         isOpen={showInventory}
         onClose={() => setShowInventory(false)}
         collectedIds={collectedIds}
+        solvedPuzzleIds={solvedPuzzleIds}
         onSelectItem={(item) => {
           setShowInventory(false);
           setActiveGift(item);

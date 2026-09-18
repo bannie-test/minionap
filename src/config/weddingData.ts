@@ -1,5 +1,62 @@
-import { WeddingConfig, TimelineEvent, WeddingScheduleItem, GalleryImage, WishRecord, Puzzle, Collectible, SeasonInfo } from '../types';
+import { WeddingConfig, TimelineEvent, WeddingScheduleItem, GalleryImage, WishRecord, Puzzle, Collectible, SeasonInfo, KeepsakeCategory, KeepsakeCategoryId } from '../types';
 import { checkSpecialGuestInDb, getSpecialGuestsTable } from '../services/guestDatabase';
+
+export const KEEPSAKE_CATEGORIES: KeepsakeCategory[] = [
+  {
+    id: 'love_lore',
+    name: 'Love Lore & Milestones',
+    icon: '💖',
+    badgeColor: 'bg-rose-100 text-rose-800 border-rose-200',
+    description: 'First meetings, sunrise promises, and lifelong devotion.'
+  },
+  {
+    id: 'daily_habits',
+    name: 'Couple Quirks & Family',
+    icon: '🐾',
+    badgeColor: 'bg-amber-100 text-amber-800 border-amber-200',
+    description: 'Blanket battles, puppy Waffles zoomies, and joyful home laughter.'
+  },
+  {
+    id: 'adventures',
+    name: 'Adventures & Memories',
+    icon: '🚗',
+    badgeColor: 'bg-sky-100 text-sky-800 border-sky-200',
+    description: 'Coastal highway road trips, date night style, and impromptu stargazing.'
+  },
+  {
+    id: 'celebration',
+    name: 'Wedding Lore & Secrets',
+    icon: '🥂',
+    badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    description: 'Sunset vineyard toasts, celebration cocktails, and Grand Gate mysteries.'
+  }
+];
+
+export interface CategoryProgressItem {
+  category: KeepsakeCategory;
+  totalQuizzes: number;
+  solvedQuizzes: number;
+  totalKeepsakes: number;
+  collectedKeepsakes: number;
+  isCompleted: boolean;
+}
+
+export function getCategoryProgress(collectedIds: string[], solvedPuzzleIds: string[]): CategoryProgressItem[] {
+  return KEEPSAKE_CATEGORIES.map(cat => {
+    const catPuzzles = allGamePuzzles.filter(p => p.category === cat.id);
+    const catCollectibles = gameCollectibles.filter(c => c.category === cat.id);
+    const solvedCount = catPuzzles.filter(p => solvedPuzzleIds.includes(p.id)).length;
+    const collectedCount = catCollectibles.filter(c => collectedIds.includes(c.id)).length;
+    return {
+      category: cat,
+      totalQuizzes: catPuzzles.length,
+      solvedQuizzes: solvedCount,
+      totalKeepsakes: catCollectibles.length,
+      collectedKeepsakes: collectedCount,
+      isCompleted: catCollectibles.length > 0 && collectedCount === catCollectibles.length
+    };
+  });
+}
 
 export const fourSeasons: SeasonInfo[] = [
   {
@@ -302,7 +359,8 @@ export const allGamePuzzles: Puzzle[] = [
     id: "puz_winter_1",
     world: 1,
     title: "The Rainy Day Mystery",
-    category: "logic",
+    category: "love_lore",
+    categoryLabel: "Love Lore & Milestones",
     question: "Where did Julian & Sophia have their very first rainy afternoon conversation?",
     options: [
       "In a sunlit North Beach café over warm almond lattes",
@@ -319,7 +377,8 @@ export const allGamePuzzles: Puzzle[] = [
     id: "puz_winter_2",
     world: 1,
     title: "The Frosty Morning Conundrum",
-    category: "couple",
+    category: "daily_habits",
+    categoryLabel: "Couple Quirks & Family",
     question: "On freezing winter mornings, who is historically guilty of stealing all the blankets?",
     options: [
       "Sophia (wraps herself like a cozy cinnamon roll)",
@@ -338,7 +397,8 @@ export const allGamePuzzles: Puzzle[] = [
     id: "puz_spring_1",
     world: 2,
     title: "Waffles' Big Debut",
-    category: "couple",
+    category: "daily_habits",
+    categoryLabel: "Couple Quirks & Family",
     question: "When they brought home their golden retriever pup Waffles in spring, what was his very first act?",
     options: [
       "Zoomed in 10 hyper circles and fell asleep snoring on Julian's shoe",
@@ -355,7 +415,8 @@ export const allGamePuzzles: Puzzle[] = [
     id: "puz_spring_2",
     world: 2,
     title: "The Great Date Night Debate",
-    category: "funny_choice",
+    category: "adventures",
+    categoryLabel: "Adventures & Memories",
     question: "Who takes significantly longer to get ready before a romantic date night?",
     options: [
       "Julian (obsessed with hair styling & trying on 4 jackets)",
@@ -374,7 +435,8 @@ export const allGamePuzzles: Puzzle[] = [
     id: "puz_summer_1",
     world: 3,
     title: "The Big Sur Breakdown",
-    category: "memory",
+    category: "adventures",
+    categoryLabel: "Adventures & Memories",
     question: "When their vintage station wagon stalled on the Pacific Coast Highway in summer, what did they do?",
     options: [
       "Baked cliffside s'mores and watched meteor showers all night",
@@ -391,7 +453,8 @@ export const allGamePuzzles: Puzzle[] = [
     id: "puz_summer_2",
     world: 3,
     title: "The Sunset Toast",
-    category: "wedding_trivia",
+    category: "celebration",
+    categoryLabel: "Wedding Lore & Secrets",
     question: "Which signature summer cocktail will be served at the sunset vineyard reception?",
     options: [
       "Lavender Limoncello Spritz & Sonoma Sunset Sangria",
@@ -410,7 +473,8 @@ export const allGamePuzzles: Puzzle[] = [
     id: "puz_autumn_1",
     world: 4,
     title: "The Lake Como Promise",
-    category: "couple",
+    category: "love_lore",
+    categoryLabel: "Love Lore & Milestones",
     question: "Where did Julian drop to one knee with the vintage heirloom diamond ring?",
     options: [
       "Beside the mist-kissed sunrise waters of Lake Como, Italy",
@@ -427,7 +491,8 @@ export const allGamePuzzles: Puzzle[] = [
     id: "puz_autumn_2",
     world: 4,
     title: "The Grand Gate Mystery",
-    category: "wedding_trivia",
+    category: "celebration",
+    categoryLabel: "Wedding Lore & Secrets",
     question: "What wondrous celebration is waiting right beyond the Grand Wedding Gate ahead?",
     options: [
       "The Official Wedding Invitation, RSVP, Schedule & Wishes of Julian & Sophia!",
@@ -460,6 +525,9 @@ export const gameCollectibles: Collectible[] = [
     description: "Rich dark chocolate with floating mini marshmallows.",
     world: 1,
     icon: "☕",
+    category: "love_lore",
+    sourceQuizId: "puz_winter_1",
+    sourceQuizTitle: "The Rainy Day Mystery",
     rewardContent: {
       type: "memory",
       title: "Cozy Winter Evenings",
@@ -473,6 +541,9 @@ export const gameCollectibles: Collectible[] = [
     description: "A glistening snowflake crystal that never melts.",
     world: 1,
     icon: "❄️",
+    category: "daily_habits",
+    sourceQuizId: "puz_winter_2",
+    sourceQuizTitle: "The Frosty Morning Conundrum",
     rewardContent: {
       type: "quote",
       title: "Clarity of Love",
@@ -488,6 +559,9 @@ export const gameCollectibles: Collectible[] = [
     description: "A delicate pink petal carrying the promise of spring.",
     world: 2,
     icon: "🌸",
+    category: "daily_habits",
+    sourceQuizId: "puz_spring_1",
+    sourceQuizTitle: "Waffles' Big Debut",
     rewardContent: {
       type: "memory",
       title: "New Beginnings",
@@ -501,6 +575,9 @@ export const gameCollectibles: Collectible[] = [
     description: "A funny snapshot of little Waffles with one floppy ear.",
     world: 2,
     icon: "📷",
+    category: "adventures",
+    sourceQuizId: "puz_spring_2",
+    sourceQuizTitle: "The Great Date Night Debate",
     rewardContent: {
       type: "photo",
       title: "Family of Three",
@@ -516,6 +593,9 @@ export const gameCollectibles: Collectible[] = [
     description: "Classic tortoiseshell shades worn along Highway 1.",
     world: 3,
     icon: "🕶️",
+    category: "adventures",
+    sourceQuizId: "puz_summer_1",
+    sourceQuizTitle: "The Big Sur Breakdown",
     rewardContent: {
       type: "memory",
       title: "Golden Hour Coastlines",
@@ -529,6 +609,9 @@ export const gameCollectibles: Collectible[] = [
     description: "A sparkling ring blessed with enduring devotion.",
     world: 3,
     icon: "💍",
+    category: "celebration",
+    sourceQuizId: "puz_summer_2",
+    sourceQuizTitle: "The Sunset Toast",
     rewardContent: {
       type: "quote",
       title: "The Sacred Vow",
@@ -544,6 +627,9 @@ export const gameCollectibles: Collectible[] = [
     description: "A bottle of aged red wine harvested under Tuscan-style autumn skies.",
     world: 4,
     icon: "🍷",
+    category: "love_lore",
+    sourceQuizId: "puz_autumn_1",
+    sourceQuizTitle: "The Lake Como Promise",
     rewardContent: {
       type: "memory",
       title: "Toast to Forever",
@@ -557,6 +643,9 @@ export const gameCollectibles: Collectible[] = [
     description: "An ornate royal invitation parchment sealed in burgundy wax.",
     world: 4,
     icon: "💌",
+    category: "celebration",
+    sourceQuizId: "puz_autumn_2",
+    sourceQuizTitle: "The Grand Gate Mystery",
     rewardContent: {
       type: "message",
       title: "Welcome to Our Wedding Celebration!",

@@ -2,7 +2,7 @@
   "entities": {
     "SpecialGuest": {
       "title": "SpecialGuest",
-      "description": "Special guest name entry that unlocks VIP trivia quizzes",
+      "description": "Special guest name entry that unlocks VIP trivia quizzes (managed directly in database)",
       "type": "object",
       "properties": {
         "id": { "type": "string", "description": "Normalized guest name / ID" },
@@ -23,6 +23,7 @@
         "message": { "type": "string", "description": "Message content" },
         "isPrivateName": { "type": "boolean", "description": "Whether the name should be kept private" },
         "isApproved": { "type": "boolean", "description": "Moderation approval status" },
+        "likes": { "type": "number", "description": "Heart likes counter" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp created" }
       },
       "required": ["id", "guestName", "message", "isApproved"]
@@ -42,12 +43,68 @@
         "submittedAt": { "type": "string", "format": "date-time", "description": "Timestamp submitted" }
       },
       "required": ["id", "guestName", "attendance", "guestCount"]
+    },
+    "PlayerProgress": {
+      "title": "PlayerProgress",
+      "description": "Guest 2D RPG adventure progression and collected keepsakes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Player session ID or normalized name" },
+        "playerName": { "type": "string", "description": "Player character name" },
+        "isSpecialMember": { "type": "boolean", "description": "Whether player is on database VIP roster" },
+        "currentWorld": { "type": "number", "description": "Current season world (1 to 4)" },
+        "collectedIds": { "type": "string", "description": "Comma-separated or JSON list of collected keepsake IDs" },
+        "solvedPuzzleIds": { "type": "string", "description": "Comma-separated or JSON list of solved quiz IDs" },
+        "completed": { "type": "boolean", "description": "Whether player reached wedding gate" },
+        "lastActive": { "type": "string", "format": "date-time", "description": "Last activity timestamp" }
+      },
+      "required": ["id", "playerName", "currentWorld"]
+    },
+    "WeddingKeepsake": {
+      "title": "WeddingKeepsake",
+      "description": "Wedding keepsake catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Keepsake ID" },
+        "title": { "type": "string", "description": "Keepsake title" },
+        "icon": { "type": "string", "description": "Emoji icon" },
+        "world": { "type": "number", "description": "Season world index" },
+        "category": { "type": "string", "description": "Keepsake category" },
+        "description": { "type": "string", "description": "Keepsake story lore" }
+      },
+      "required": ["id", "title", "icon", "world", "category"]
+    },
+    "WeddingQuiz": {
+      "title": "WeddingQuiz",
+      "description": "Wedding couple trivia quiz checkpoint",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Quiz checkpoint ID" },
+        "world": { "type": "number", "description": "Season world index" },
+        "category": { "type": "string", "description": "Category identifier" },
+        "question": { "type": "string", "description": "Quiz riddle text" },
+        "rewardCollectibleId": { "type": "string", "description": "Reward keepsake ID unlocked" }
+      },
+      "required": ["id", "question", "rewardCollectibleId"]
+    },
+    "WeddingEvent": {
+      "title": "WeddingEvent",
+      "description": "Wedding day schedule itinerary milestone",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Event ID" },
+        "time": { "type": "string", "description": "Scheduled time" },
+        "title": { "type": "string", "description": "Event title" },
+        "location": { "type": "string", "description": "Event venue location" },
+        "description": { "type": "string", "description": "Event description" }
+      },
+      "required": ["id", "time", "title"]
     }
   },
   "firestore": {
     "/special_guest_roster/{guestId}": {
       "schema": { "$ref": "#/entities/SpecialGuest" },
-      "description": "Database table for special guest roster to unlock VIP quizzes"
+      "description": "Database table for special guest roster to unlock VIP quizzes (set only from database)"
     },
     "/wedding_wishes/{wishId}": {
       "schema": { "$ref": "#/entities/WeddingWish" },
@@ -56,6 +113,22 @@
     "/wedding_rsvps/{rsvpId}": {
       "schema": { "$ref": "#/entities/WeddingRsvp" },
       "description": "Guest RSVP submissions and attendance confirmations"
+    },
+    "/player_progress/{playerId}": {
+      "schema": { "$ref": "#/entities/PlayerProgress" },
+      "description": "Player game progress, keepsakes collected, and quiz milestones"
+    },
+    "/wedding_keepsakes/{keepsakeId}": {
+      "schema": { "$ref": "#/entities/WeddingKeepsake" },
+      "description": "Keepsake catalog items stored in database"
+    },
+    "/wedding_quizzes/{quizId}": {
+      "schema": { "$ref": "#/entities/WeddingQuiz" },
+      "description": "Wedding trivia quizzes stored in database"
+    },
+    "/wedding_timeline/{eventId}": {
+      "schema": { "$ref": "#/entities/WeddingEvent" },
+      "description": "Wedding itinerary timeline milestones"
     }
   }
 }

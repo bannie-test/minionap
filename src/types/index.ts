@@ -1,3 +1,13 @@
+export type KeepsakeCategoryId = 'love_lore' | 'daily_habits' | 'adventures' | 'celebration';
+
+export interface KeepsakeCategory {
+  id: KeepsakeCategoryId;
+  name: string;
+  icon: string;
+  badgeColor: string;
+  description: string;
+}
+
 export interface Collectible {
   id: string;
   type: 'gift' | 'star' | 'photo' | 'ring' | 'card' | 'flower';
@@ -5,6 +15,9 @@ export interface Collectible {
   description: string;
   world: number;
   icon: string;
+  category: KeepsakeCategoryId;
+  sourceQuizId?: string;
+  sourceQuizTitle?: string;
   rewardContent?: {
     type: 'message' | 'photo' | 'quote' | 'memory';
     title: string;
@@ -14,13 +27,14 @@ export interface Collectible {
   };
 }
 
-export type PuzzleCategory = 'logic' | 'observation' | 'couple' | 'wedding_trivia' | 'funny_choice' | 'memory';
+export type PuzzleCategory = 'logic' | 'observation' | 'couple' | 'wedding_trivia' | 'funny_choice' | 'memory' | KeepsakeCategoryId;
 
 export interface Puzzle {
   id: string;
   world?: number;
   title?: string;
-  category: PuzzleCategory;
+  category: KeepsakeCategoryId | PuzzleCategory;
+  categoryLabel?: string;
   question: string;
   options: string[];
   correctAnswer: number;
