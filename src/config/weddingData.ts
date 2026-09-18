@@ -1,4 +1,73 @@
-import { WeddingConfig, TimelineEvent, WeddingScheduleItem, GalleryImage, WishRecord, Puzzle, Collectible } from '../types';
+import { WeddingConfig, TimelineEvent, WeddingScheduleItem, GalleryImage, WishRecord, Puzzle, Collectible, SeasonInfo } from '../types';
+import { checkSpecialGuestInDb, getSpecialGuestsTable } from '../services/guestDatabase';
+
+export const fourSeasons: SeasonInfo[] = [
+  {
+    id: 1,
+    name: "Winter Wonderland",
+    season: "winter",
+    icon: "❄️",
+    subtitle: "World 1 • Frosty Snowscape",
+    description: "Gentle falling snow, crystalline ice platforms, and cozy warm memories.",
+    accentColor: "#38bdf8",
+    gateName: "Spring Flower Gate"
+  },
+  {
+    id: 2,
+    name: "Spring Blossom Meadow",
+    season: "spring",
+    icon: "🌸",
+    subtitle: "World 2 • Blooming Sakura",
+    description: "Floating cherry blossom petals, lush green fields, and playful garden snails.",
+    accentColor: "#ec4899",
+    gateName: "Summer Sun Gate"
+  },
+  {
+    id: 3,
+    name: "Summer Golden Coast",
+    season: "summer",
+    icon: "☀️",
+    subtitle: "World 3 • Radiant Sunbeams",
+    description: "Warm golden sands, sunflower jump pads, and memories of seaside road trips.",
+    accentColor: "#f59e0b",
+    gateName: "Autumn Amber Gate"
+  },
+  {
+    id: 4,
+    name: "Autumn Harvest Woods",
+    season: "autumn",
+    icon: "🍂",
+    subtitle: "World 4 • Path to Matrimony",
+    description: "Swirling golden maple leaves, cozy timber bridges, leading straight to the Grand Wedding Gate!",
+    accentColor: "#ea580c",
+    gateName: "Grand Wedding Gate"
+  }
+];
+
+// Special Member VIP Guest List
+// Loaded dynamically from the database table ('special_guest_roster')
+export const getDynamicSpecialGuestList = (): string[] => {
+  return getSpecialGuestsTable().map(g => g.name);
+};
+
+export const specialGuestList: string[] = [
+  'Banbanus',
+  'banbanus911',
+  'Julian',
+  'Sophia',
+  'Julian Alexander',
+  'Sophia Claire',
+  'Maya',
+  'Marcus',
+  'Eleanor',
+  'Waffles',
+  'VIP Guest'
+];
+
+export const isSpecialGuest = (name: string): boolean => {
+  if (!name) return false;
+  return checkSpecialGuestInDb(name);
+};
 
 export const weddingConfig: WeddingConfig = {
   couple: {
@@ -227,132 +296,271 @@ export const initialWishes: WishRecord[] = [
   }
 ];
 
-export const gamePuzzles: Record<number, Puzzle> = {
-  1: {
-    id: "puz_world1",
+export const allGamePuzzles: Puzzle[] = [
+  // --- WORLD 1: WINTER WONDERLAND ---
+  {
+    id: "puz_winter_1",
+    world: 1,
+    title: "The Rainy Day Mystery",
     category: "logic",
     question: "Where did Julian & Sophia have their very first rainy afternoon conversation?",
     options: [
-      "In a sunlit North Beach café over coffee",
-      "At a noisy subway station",
-      "During a marathon race"
+      "In a sunlit North Beach café over warm almond lattes",
+      "Trapped at a noisy airport baggage claim",
+      "During a muddy 10k marathon run"
     ],
     correctAnswer: 0,
     explanation: "October 2019 under the striped awning of a cozy North Beach coffee shop in SF!",
-    funnyReactionWrong: "Brrr! Cold! Not quite subway tracks — think warm roasted coffee beans and rain!",
+    funnyReactionWrong: "Brrr! Cold! Not quite baggage claim — think warm roasted espresso beans and autumn rain!",
     difficulty: "easy",
-    rewardCollectibleId: "col_photo1"
+    rewardCollectibleId: "col_winter_cocoa"
   },
-  2: {
-    id: "puz_world2",
+  {
+    id: "puz_winter_2",
+    world: 1,
+    title: "The Frosty Morning Conundrum",
     category: "couple",
-    question: "Who takes significantly longer to get ready before date night?",
+    question: "On freezing winter mornings, who is historically guilty of stealing all the blankets?",
     options: [
-      "Julian (obsessed with his shoes & hair)",
-      "Sophia (trying on three scarves)",
-      "Waffles the golden retriever!"
+      "Sophia (wraps herself like a cozy cinnamon roll)",
+      "Julian (claims he was just testing duvet tension)",
+      "Waffles the dog (claims the middle pillow territory)"
     ],
     correctAnswer: 0,
-    explanation: "True story: Julian spends 40 minutes finding the 'perfect' jacket while Sophia is already waiting at the door with keys in hand!",
-    funnyReactionWrong: "Sophia wishes! Julian's hair grooming routine is a legendary scientific event!",
+    explanation: "Sophia has an Olympic gold medal in blanket burrito wrapping! Julian accepts his fate in the cold.",
+    funnyReactionWrong: "Julian tried once, but Sophia's blanket-swaddle technique is unbeatable!",
     difficulty: "easy",
-    rewardCollectibleId: "col_ring"
+    rewardCollectibleId: "col_winter_crystal"
   },
-  3: {
-    id: "puz_world3",
-    category: "wedding_trivia",
-    question: "What is waiting behind the Grand Golden Wedding Gate ahead?",
+
+  // --- WORLD 2: SPRING BLOSSOM MEADOW ---
+  {
+    id: "puz_spring_1",
+    world: 2,
+    title: "Waffles' Big Debut",
+    category: "couple",
+    question: "When they brought home their golden retriever pup Waffles in spring, what was his very first act?",
     options: [
-      "A fierce fire dragon guarding pizza",
-      "The Official Wedding Invitation & RSVP of Julian & Sophia!",
-      "A blank 404 page"
+      "Zoomed in 10 hyper circles and fell asleep snoring on Julian's shoe",
+      "Chewed up Sophia's vintage watercolor brushes",
+      "Politely requested an organic puppuccino"
     ],
-    correctAnswer: 1,
-    explanation: "Yes! The grand gates lead to their interactive wedding invitation, stories, schedule, and wishing wall!",
-    funnyReactionWrong: "No dragons here (though late-night pizza is planned!). Try again!",
+    correctAnswer: 0,
+    explanation: "Puppy zoomies followed by immediate dead-asleep snoring on Julian's favorite sneakers!",
+    funnyReactionWrong: "Close, but his little paws couldn't resist doing 10 rapid victory laps around the living room first!",
     difficulty: "easy",
-    rewardCollectibleId: "col_invitation"
+    rewardCollectibleId: "col_spring_blossom"
+  },
+  {
+    id: "puz_spring_2",
+    world: 2,
+    title: "The Great Date Night Debate",
+    category: "funny_choice",
+    question: "Who takes significantly longer to get ready before a romantic date night?",
+    options: [
+      "Julian (obsessed with hair styling & trying on 4 jackets)",
+      "Sophia (already waiting at the door with car keys)",
+      "Both leave exactly on time with zero drama"
+    ],
+    correctAnswer: 0,
+    explanation: "Legendary truth: Julian spends 40 minutes finding the 'ideal' collar while Sophia waits patiently!",
+    funnyReactionWrong: "Sophia wishes! Julian's styling process is an exact aerospace engineering project!",
+    difficulty: "easy",
+    rewardCollectibleId: "col_spring_polaroid"
+  },
+
+  // --- WORLD 3: SUMMER GOLDEN COAST ---
+  {
+    id: "puz_summer_1",
+    world: 3,
+    title: "The Big Sur Breakdown",
+    category: "memory",
+    question: "When their vintage station wagon stalled on the Pacific Coast Highway in summer, what did they do?",
+    options: [
+      "Baked cliffside s'mores and watched meteor showers all night",
+      "Panicked and started hitchhiking with sea otters",
+      "Pushed the car 30 miles uphill back to Monterey"
+    ],
+    correctAnswer: 0,
+    explanation: "With zero cellphone reception, they pitched camp by the cliffs, shared s'mores, and realized this love was forever.",
+    funnyReactionWrong: "No sea otters harmed! They made it their most romantic impromptu stargazing night ever!",
+    difficulty: "easy",
+    rewardCollectibleId: "col_summer_shades"
+  },
+  {
+    id: "puz_summer_2",
+    world: 3,
+    title: "The Sunset Toast",
+    category: "wedding_trivia",
+    question: "Which signature summer cocktail will be served at the sunset vineyard reception?",
+    options: [
+      "Lavender Limoncello Spritz & Sonoma Sunset Sangria",
+      "Warm lukewarm tap water in a mug",
+      "Spicy wasabi milk shake"
+    ],
+    correctAnswer: 0,
+    explanation: "Crafted with local Sonoma lavender, crisp prosecco, and estate vineyard wine!",
+    funnyReactionWrong: "Wasabi milk?! Absolutely not! Think fragrant lavender, sparkling bubbles, and sunshine!",
+    difficulty: "easy",
+    rewardCollectibleId: "col_summer_ring"
+  },
+
+  // --- WORLD 4: AUTUMN HARVEST WOODS ---
+  {
+    id: "puz_autumn_1",
+    world: 4,
+    title: "The Lake Como Promise",
+    category: "couple",
+    question: "Where did Julian drop to one knee with the vintage heirloom diamond ring?",
+    options: [
+      "Beside the mist-kissed sunrise waters of Lake Como, Italy",
+      "In the drive-thru lane at Taco Bell",
+      "While trying to assemble flat-pack IKEA bookshelves"
+    ],
+    correctAnswer: 0,
+    explanation: "During a private wooden boat ride on Lake Como at sunrise, Sophia whispered 'Yes, a million times yes!'",
+    funnyReactionWrong: "While Julian does love tacos, Lake Como was infinitely more breathtaking!",
+    difficulty: "easy",
+    rewardCollectibleId: "col_autumn_wine"
+  },
+  {
+    id: "puz_autumn_2",
+    world: 4,
+    title: "The Grand Gate Mystery",
+    category: "wedding_trivia",
+    question: "What wondrous celebration is waiting right beyond the Grand Wedding Gate ahead?",
+    options: [
+      "The Official Wedding Invitation, RSVP, Schedule & Wishes of Julian & Sophia!",
+      "A fierce fire dragon asking for tolls",
+      "A mysterious portal into another dimension of homework"
+    ],
+    correctAnswer: 0,
+    explanation: "You have arrived! The Grand Wedding Gate leads directly to the wedding feast, schedule, and guest blessings!",
+    funnyReactionWrong: "No homework or dragons here! You're only moments away from our digital wedding celebration!",
+    difficulty: "easy",
+    rewardCollectibleId: "col_autumn_scroll"
   }
+];
+
+export const gamePuzzles: Record<string, Puzzle> = allGamePuzzles.reduce((acc, p) => {
+  acc[p.id] = p;
+  return acc;
+}, {} as Record<string, Puzzle>);
+
+export const getPuzzlesForWorld = (worldNum: number): Puzzle[] => {
+  return allGamePuzzles.filter(p => p.world === worldNum);
 };
 
 export const gameCollectibles: Collectible[] = [
+  // World 1: Winter
   {
-    id: "col_gift1",
+    id: "col_winter_cocoa",
     type: "gift",
-    title: "The Golden Memory Box",
-    description: "A mysterious gift box tied with a blush silk ribbon.",
+    title: "Steaming Hot Cocoa Mug",
+    description: "Rich dark chocolate with floating mini marshmallows.",
     world: 1,
-    icon: "🎁",
+    icon: "☕",
     rewardContent: {
       type: "memory",
-      title: "Memory #1: The Rainy Day Coffee",
-      text: "Julian offered Sophia his dry coat, while Sophia sketched a funny cartoon of them dodging raindrops. The start of an adventure!",
-      date: "October 2019"
+      title: "Cozy Winter Evenings",
+      text: "Julian mastered the secret ratio of cinnamon and dark chocolate to warm up chilly evenings together."
     }
   },
   {
-    id: "col_photo1",
-    type: "photo",
-    title: "Road Trip Polaroid",
-    description: "A snapshot of the Pacific Coast Highway breakdown adventure.",
+    id: "col_winter_crystal",
+    type: "star",
+    title: "Everlasting Frost Crystal",
+    description: "A glistening snowflake crystal that never melts.",
     world: 1,
+    icon: "❄️",
+    rewardContent: {
+      type: "quote",
+      title: "Clarity of Love",
+      text: "'Like every snowflake is unique, my love for you is one in all eternity.'"
+    }
+  },
+
+  // World 2: Spring
+  {
+    id: "col_spring_blossom",
+    type: "flower",
+    title: "First Sakura Blossom",
+    description: "A delicate pink petal carrying the promise of spring.",
+    world: 2,
+    icon: "🌸",
+    rewardContent: {
+      type: "memory",
+      title: "New Beginnings",
+      text: "Every spring they plant new garden herbs and watch the cherry trees burst with life in Berkeley."
+    }
+  },
+  {
+    id: "col_spring_polaroid",
+    type: "photo",
+    title: "Puppy Waffles' First Polaroid",
+    description: "A funny snapshot of little Waffles with one floppy ear.",
+    world: 2,
     icon: "📷",
     rewardContent: {
       type: "photo",
-      title: "Big Sur Memories",
-      text: "Even when the car broke down, the laughter never stopped. True love is having fun stranded on the Pacific cliffside."
+      title: "Family of Three",
+      text: "The moment Waffles joined their home, their world was forever filled with tail wags and joyful laughter."
+    }
+  },
+
+  // World 3: Summer
+  {
+    id: "col_summer_shades",
+    type: "gift",
+    title: "Vintage Road Trip Sunglasses",
+    description: "Classic tortoiseshell shades worn along Highway 1.",
+    world: 3,
+    icon: "🕶️",
+    rewardContent: {
+      type: "memory",
+      title: "Golden Hour Coastlines",
+      text: "Driving with windows rolled all the way down, ocean breeze in Sophia's hair and vintage tunes playing."
     }
   },
   {
-    id: "col_ring",
+    id: "col_summer_ring",
     type: "ring",
     title: "Heirloom Promise Ring",
-    description: "A sparkling band blessed with eternal devotion.",
-    world: 2,
+    description: "A sparkling ring blessed with enduring devotion.",
+    world: 3,
     icon: "💍",
     rewardContent: {
       type: "quote",
-      title: "The Vow",
-      text: "'In every lifetime, in every universe, I would always find my way back to your heart.'"
+      title: "The Sacred Vow",
+      text: "'In every lifetime, across every winding path, I would choose your hand to hold.'"
     }
   },
+
+  // World 4: Autumn
   {
-    id: "col_star",
-    type: "star",
-    title: "Star of Romance",
-    description: "Radiant starlight collected from the twilight sky.",
-    world: 2,
-    icon: "⭐",
-    rewardContent: {
-      type: "message",
-      title: "A Wish Granted",
-      text: "Two adventurers traveling together, discovering wonder in the smallest everyday moments."
-    }
-  },
-  {
-    id: "col_flower",
-    type: "flower",
-    title: "Sonoma Lavender Bouquet",
-    description: "Fragrant purple blossoms picked fresh from the chapel garden.",
-    world: 3,
-    icon: "🌹",
+    id: "col_autumn_wine",
+    type: "gift",
+    title: "Sonoma Valley Reserve Vintage",
+    description: "A bottle of aged red wine harvested under Tuscan-style autumn skies.",
+    world: 4,
+    icon: "🍷",
     rewardContent: {
       type: "memory",
-      title: "Fragrance of the Day",
-      text: "The exact lavender and white garden roses that will line the aisle when Sophia walks to Julian."
+      title: "Toast to Forever",
+      text: "Aged to perfection, just like love that grows deeper, richer, and sweeter with each passing year."
     }
   },
   {
-    id: "col_invitation",
+    id: "col_autumn_scroll",
     type: "card",
-    title: "Golden Gate Key & Royal Scroll",
-    description: "The enchanted key that unlocks the Grand Wedding Gates!",
-    world: 3,
+    title: "The Golden Wedding Gate Scroll",
+    description: "An ornate royal invitation parchment sealed in burgundy wax.",
+    world: 4,
     icon: "💌",
     rewardContent: {
       type: "message",
-      title: "You Have Arrived!",
-      text: "With this key, the gates swing open. Welcome to our wedding celebration!"
+      title: "Welcome to Our Wedding Celebration!",
+      text: "You have traversed the 4 seasons. The Grand Wedding Gates now swing wide open for you!"
     }
   }
 ];

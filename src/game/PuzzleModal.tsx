@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CheckCircle2, AlertCircle, FastForward, Sparkles, HelpCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle2, AlertCircle, FastForward, Sparkles, HelpCircle, ArrowRight, Heart } from 'lucide-react';
 import { Puzzle } from '../types';
 import { soundManager } from '../audio/soundManager';
+import { gameCollectibles } from '../config/weddingData';
 
 interface PuzzleModalProps {
   puzzle: Puzzle | null;
@@ -24,6 +25,10 @@ export const PuzzleModal: React.FC<PuzzleModalProps> = ({
   const [isCorrect, setIsCorrect] = useState<boolean>(false);
 
   if (!isOpen || !puzzle) return null;
+
+  const matchedKeepsake = puzzle.rewardCollectibleId
+    ? gameCollectibles.find(c => c.id === puzzle.rewardCollectibleId)
+    : null;
 
   const handleSelectOption = (index: number) => {
     soundManager.playClick();
@@ -134,13 +139,37 @@ export const PuzzleModal: React.FC<PuzzleModalProps> = ({
               >
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">{isCorrect ? '✨' : '🤔'}</span>
-                  <div>
+                  <div className="flex-1">
                     <h5 className="font-bold text-sm sm:text-base mb-1">
                       {isCorrect ? 'That is spot on!' : 'Are you sure about that?'}
                     </h5>
                     <p className="text-xs sm:text-sm">
                       {isCorrect ? puzzle.explanation : puzzle.funnyReactionWrong || 'Give it another thought or skip ahead!'}
                     </p>
+
+                    {/* Keepsake Unlocked Notification Card */}
+                    {isCorrect && matchedKeepsake && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-3 p-3 rounded-xl bg-gradient-to-r from-amber-100 to-rose-100 border border-amber-300 flex items-center gap-3 text-left shadow-xs"
+                      >
+                        <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-2xl flex-shrink-0 border border-amber-200">
+                          {matchedKeepsake.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-800 bg-rose-200/80 px-2 py-0.5 rounded-full inline-block mb-0.5">
+                            🎁 Keepsake Added to Backpack!
+                          </span>
+                          <h6 className="font-bold text-stone-900 text-xs sm:text-sm truncate">
+                            {matchedKeepsake.title}
+                          </h6>
+                          <p className="text-[11px] text-stone-600 truncate">
+                            {matchedKeepsake.description}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -160,10 +189,9 @@ export const PuzzleModal: React.FC<PuzzleModalProps> = ({
                 <button
                   id="puzzle-continue-btn"
                   onClick={handleContinue}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-md transition-all active:scale-95"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition-all active:scale-95 text-xs sm:text-sm"
                 >
-                  <span>Continue Adventure</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Continue Path ➜</span>
                 </button>
               ) : isSubmitted && !isCorrect ? (
                 <button

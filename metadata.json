@@ -1,6 +1,6 @@
 {
   "name": "Interactive Wedding Adventure & Invitation",
-  "description": "A delightful 2D platformer adventure leading to an elegant interactive digital wedding invitation with RSVP, wishes wall, and story.",
+  "description": "A delightful 4-season 2D adventure (Winter, Spring, Summer, Autumn) leading through bidirectional gates to the Grand Wedding Gate, with custom minion character and wishes database architecture.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

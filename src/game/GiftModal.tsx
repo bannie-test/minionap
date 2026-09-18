@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Heart, X, Check } from 'lucide-react';
+import { Sparkles, Heart, X, ArrowRight } from 'lucide-react';
 import { Collectible } from '../types';
 import { soundManager } from '../audio/soundManager';
 
@@ -87,10 +87,10 @@ export const GiftModal: React.FC<GiftModalProps> = ({ collectible, isOpen, onClo
                 soundManager.playClick();
                 onClose();
               }}
-              className="w-full inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-semibold shadow-md hover:shadow-lg transition active:scale-98"
+              className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-bold shadow-md hover:shadow-lg transition active:scale-98 text-sm"
             >
-              <Check className="w-4 h-4" />
-              <span>Save to Keepsakes &amp; Continue</span>
+              <span>Save to Keepsakes &amp; Continue Path</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </motion.div>

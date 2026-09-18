@@ -18,6 +18,8 @@ export type PuzzleCategory = 'logic' | 'observation' | 'couple' | 'wedding_trivi
 
 export interface Puzzle {
   id: string;
+  world?: number;
+  title?: string;
   category: PuzzleCategory;
   question: string;
   options: string[];
@@ -26,6 +28,17 @@ export interface Puzzle {
   funnyReactionWrong?: string;
   difficulty: 'easy' | 'medium';
   rewardCollectibleId?: string;
+}
+
+export interface SeasonInfo {
+  id: number;
+  name: string;
+  season: 'winter' | 'spring' | 'summer' | 'autumn';
+  icon: string;
+  subtitle: string;
+  description: string;
+  accentColor: string;
+  gateName: string;
 }
 
 export interface GameProgress {

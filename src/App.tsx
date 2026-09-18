@@ -18,7 +18,7 @@ import { RsvpSection } from './components/wedding/RsvpSection';
 import { WishesSection } from './components/wedding/WishesSection';
 import { AdminModal } from './components/wedding/AdminModal';
 import { Collectible, Puzzle, WishRecord, RSVPRecord } from './types';
-import { initialWishes, weddingConfig } from './config/weddingData';
+import { initialWishes, weddingConfig, isSpecialGuest, allGamePuzzles, specialGuestList } from './config/weddingData';
 import { soundManager } from './audio/soundManager';
 import { Heart, Gamepad2, Shield, ArrowUp } from 'lucide-react';
 
@@ -28,6 +28,11 @@ export default function App() {
   const [hasStarted, setHasStarted] = useState<boolean>(false);
   const [showLandingModal, setShowLandingModal] = useState<boolean>(true);
 
+  // Player Name State (required on visit, displayed above minion character)
+  const [playerName, setPlayerName] = useState<string>(() => {
+    return localStorage.getItem('wedding_player_name') || '';
+  });
+
   // Modals
   const [showSkipModal, setShowSkipModal] = useState<boolean>(false);
   const [showGateTransition, setShowGateTransition] = useState<boolean>(false);
@@ -36,11 +41,12 @@ export default function App() {
   const [showInventory, setShowInventory] = useState<boolean>(false);
   const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
 
-  // Game Progress State
+  // Game Progress State (4 Seasonal Worlds)
   const [currentWorld, setCurrentWorld] = useState<number>(1);
   const [collectedIds, setCollectedIds] = useState<string[]>([]);
   const [solvedPuzzleIds, setSolvedPuzzleIds] = useState<string[]>([]);
   const [invitationUnlocked, setInvitationUnlocked] = useState<boolean>(false);
+  const [continuePathCounter, setContinuePathCounter] = useState<number>(0);
 
   // Persistent Wishes and RSVPs
   const [wishes, setWishes] = useState<WishRecord[]>([]);
@@ -49,6 +55,12 @@ export default function App() {
   // Load saved session on mount
   useEffect(() => {
     try {
+      // Check for stored player name
+      const savedName = localStorage.getItem('wedding_player_name');
+      if (savedName) {
+        setPlayerName(savedName);
+      }
+
       // Load game progress
       const savedProgress = localStorage.getItem('wedding_game_progress');
       if (savedProgress) {
@@ -134,26 +146,46 @@ export default function App() {
   };
 
   const handleSolvePuzzle = (puzzleId: string) => {
+    let updatedSolved = solvedPuzzleIds;
     if (!solvedPuzzleIds.includes(puzzleId)) {
-      const updated = [...solvedPuzzleIds, puzzleId];
-      setSolvedPuzzleIds(updated);
-      saveProgress(currentWorld, collectedIds, updated, invitationUnlocked);
+      updatedSolved = [...solvedPuzzleIds, puzzleId];
+      setSolvedPuzzleIds(updatedSolved);
     }
+
+    // Award matching wedding keepsake to backpack
+    const matchedPuzzle = allGamePuzzles.find(p => p.id === puzzleId);
+    let updatedCollected = collectedIds;
+    if (matchedPuzzle?.rewardCollectibleId && !collectedIds.includes(matchedPuzzle.rewardCollectibleId)) {
+      updatedCollected = [...collectedIds, matchedPuzzle.rewardCollectibleId];
+      setCollectedIds(updatedCollected);
+    }
+
+    saveProgress(currentWorld, updatedCollected, updatedSolved, invitationUnlocked);
     setActivePuzzle(null);
+    setContinuePathCounter(c => c + 1);
   };
 
   const handleSkipPuzzle = (puzzleId: string) => {
+    let updatedSolved = solvedPuzzleIds;
     if (!solvedPuzzleIds.includes(puzzleId)) {
-      const updated = [...solvedPuzzleIds, puzzleId];
-      setSolvedPuzzleIds(updated);
-      saveProgress(currentWorld, collectedIds, updated, invitationUnlocked);
+      updatedSolved = [...solvedPuzzleIds, puzzleId];
+      setSolvedPuzzleIds(updatedSolved);
+      saveProgress(currentWorld, collectedIds, updatedSolved, invitationUnlocked);
     }
     setActivePuzzle(null);
+    setContinuePathCounter(c => c + 1);
   };
 
-  const handleNextWorld = (worldNum: number) => {
+  const handleSwitchWorld = (worldNum: number, spawnX?: number) => {
     setCurrentWorld(worldNum);
     saveProgress(worldNum, collectedIds, solvedPuzzleIds, invitationUnlocked);
+  };
+
+  const handlePlayerNameChange = (name: string) => {
+    setPlayerName(name);
+    try {
+      localStorage.setItem('wedding_player_name', name);
+    } catch {}
   };
 
   const handleReachGate = () => {
@@ -323,45 +355,49 @@ export default function App() {
           <div className="w-full flex flex-col items-center justify-center">
             <GameCanvas
               currentWorld={currentWorld}
+              playerName={playerName}
+              isSpecialMember={isSpecialGuest(playerName)}
+              continuePathTrigger={continuePathCounter}
               collectedIds={collectedIds}
               solvedPuzzleIds={solvedPuzzleIds}
               onCollectItem={handleCollectItem}
               onOpenPuzzle={handleOpenPuzzle}
               onReachGate={handleReachGate}
-              onNextWorld={handleNextWorld}
+              onSwitchWorld={handleSwitchWorld}
               onOpenInventory={() => setShowInventory(true)}
               onOpenSkipModal={() => setShowSkipModal(true)}
+              onChangeName={() => setShowLandingModal(true)}
             />
 
             {/* In-Game World Description & Exploration Cards */}
             <div className="w-full max-w-5xl mx-auto px-4 py-8">
               <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xs border border-stone-200/90 grid md:grid-cols-3 gap-6">
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl">🎮</span>
+                  <span className="text-3xl">❄️🌸</span>
                   <div>
-                    <h4 className="font-bold text-stone-900 text-sm">Chapter 1: The Adventure</h4>
+                    <h4 className="font-bold text-stone-900 text-sm">The 4 Seasons Quest</h4>
                     <p className="text-stone-500 text-xs mt-0.5">
-                      Explore 3 worlds, leap over hurdles, solve couple riddles, and discover wedding keepsakes.
+                      Journey through Winter, Spring, Summer, and Autumn. Collect keepsakes and solve 8 couple trivia riddles!
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl">🎁</span>
+                  <span className="text-3xl">🚪↔️</span>
                   <div>
-                    <h4 className="font-bold text-stone-900 text-sm">Keepsakes Backpack</h4>
+                    <h4 className="font-bold text-stone-900 text-sm">Bidirectional Gates</h4>
                     <p className="text-stone-500 text-xs mt-0.5">
-                      Click the backpack icon anytime to inspect memories, road trip photos, and heirloom rings.
+                      Move freely back and forth between worlds through the left (Return) and right (Advance) seasonal gates.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <span className="text-3xl">🌸</span>
+                  <span className="text-3xl">💒💍</span>
                   <div>
-                    <h4 className="font-bold text-stone-900 text-sm">The Grand Gate</h4>
+                    <h4 className="font-bold text-stone-900 text-sm">Grand Wedding Gate</h4>
                     <p className="text-stone-500 text-xs mt-0.5">
-                      At World 3's end, the golden gate unlocks Julian &amp; Sophia's wedding invitation!
+                      At Autumn's edge awaits the ornate floral wedding arch leading to Julian &amp; Sophia's official celebration!
                     </p>
                   </div>
                 </div>
@@ -381,6 +417,7 @@ export default function App() {
             <RsvpSection onRsvpSubmitted={handleRsvpSubmitted} />
             <WishesSection
               wishes={wishes}
+              playerName={playerName}
               onSubmitWish={handleSubmitWish}
               onLikeWish={handleLikeWish}
               onOpenAdmin={() => setShowAdminModal(true)}
@@ -430,6 +467,8 @@ export default function App() {
       {/* 1. Landing Introduction Modal */}
       <LandingIntroModal
         isOpen={showLandingModal}
+        playerName={playerName}
+        onPlayerNameChange={handlePlayerNameChange}
         onPlay={() => setShowLandingModal(false)}
         onSkip={handleDirectSkipToInvitation}
       />
@@ -447,14 +486,20 @@ export default function App() {
         isOpen={activePuzzle !== null}
         onSolve={handleSolvePuzzle}
         onSkip={handleSkipPuzzle}
-        onClose={() => setActivePuzzle(null)}
+        onClose={() => {
+          setActivePuzzle(null);
+          setContinuePathCounter(c => c + 1);
+        }}
       />
 
       {/* 4. Gift / Keepsake Inspect Modal */}
       <GiftModal
         collectible={activeGift}
         isOpen={activeGift !== null}
-        onClose={() => setActiveGift(null)}
+        onClose={() => {
+          setActiveGift(null);
+          setContinuePathCounter(c => c + 1);
+        }}
       />
 
       {/* 5. Inventory Drawer */}
