@@ -7,6 +7,17 @@
  * Table Name: 'special_guest_roster'
  */
 
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  updateDoc,
+  onSnapshot,
+  getDocs
+} from 'firebase/firestore';
+import { db, FIREBASE_CONSOLE_URL } from './firebase';
+
 export interface SpecialGuestEntry {
   id: string;
   name: string;
@@ -16,7 +27,10 @@ export interface SpecialGuestEntry {
   createdAt: string;
 }
 
+export { FIREBASE_CONSOLE_URL };
+
 const STORAGE_KEY = 'wedding_special_guests_table';
+const FIRESTORE_COLLECTION = 'special_guest_roster';
 
 // Default seeded database table records
 const DEFAULT_SPECIAL_GUESTS: SpecialGuestEntry[] = [
@@ -110,19 +124,71 @@ const DEFAULT_SPECIAL_GUESTS: SpecialGuestEntry[] = [
   }
 ];
 
-// In-memory cached table for fast 60FPS sync lookups
+// In-memory cached table for instant 60FPS sync lookups
 let cachedGuestTable: SpecialGuestEntry[] = [];
+let hasSubscribedToFirestore = false;
+
+/**
+ * Initialize Firestore synchronization listener
+ */
+export function initFirestoreGuestSync(): void {
+  if (hasSubscribedToFirestore) return;
+  hasSubscribedToFirestore = true;
+
+  try {
+    const colRef = collection(db, FIRESTORE_COLLECTION);
+    
+    // Initial fetch to check if Firestore collection needs seed data
+    getDocs(colRef).then(snapshot => {
+      if (snapshot.empty) {
+        console.log('[Firebase] Seeding initial VIP special_guest_roster to Cloud Firestore...');
+        DEFAULT_SPECIAL_GUESTS.forEach(async (guest) => {
+          try {
+            await setDoc(doc(db, FIRESTORE_COLLECTION, guest.id), guest);
+          } catch (e) {
+            console.warn('[Firebase] Seed error for', guest.name, e);
+          }
+        });
+      }
+    }).catch(err => {
+      console.warn('[Firebase] Snapshot read warning', err);
+    });
+
+    // Real-time synchronization
+    onSnapshot(colRef, (snapshot) => {
+      if (!snapshot.empty) {
+        const firestoreList: SpecialGuestEntry[] = [];
+        snapshot.forEach(docSnap => {
+          firestoreList.push(docSnap.data() as SpecialGuestEntry);
+        });
+        cachedGuestTable = firestoreList;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(firestoreList));
+        } catch {}
+      }
+    }, (err) => {
+      console.warn('[Firebase] Firestore onSnapshot warning', err);
+    });
+  } catch (err) {
+    console.warn('[Firebase] Failed to initialize Firestore listener', err);
+  }
+}
 
 /**
  * Initialize and load database table
  */
 export function getSpecialGuestsTable(): SpecialGuestEntry[] {
+  if (cachedGuestTable.length > 0) {
+    return cachedGuestTable;
+  }
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         cachedGuestTable = parsed;
+        initFirestoreGuestSync();
         return parsed;
       }
     }
@@ -135,11 +201,13 @@ export function getSpecialGuestsTable(): SpecialGuestEntry[] {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cachedGuestTable));
   } catch {}
+
+  initFirestoreGuestSync();
   return cachedGuestTable;
 }
 
 /**
- * Save table changes to storage
+ * Save table changes to storage and sync to Firestore
  */
 export function saveSpecialGuestsTable(table: SpecialGuestEntry[]): void {
   cachedGuestTable = table;
@@ -152,7 +220,6 @@ export function saveSpecialGuestsTable(table: SpecialGuestEntry[]): void {
 
 /**
  * Check if a player name exists in the database table and has quiz access enabled.
- * Case-insensitive, trimmed, and handles exact match or token containment.
  */
 export function checkSpecialGuestInDb(name: string): boolean {
   if (!name || !name.trim()) return false;
@@ -171,7 +238,6 @@ export function checkSpecialGuestInDb(name: string): boolean {
 
     // Full name match (e.g. input "Julian Alexander" matches "Julian" or vice-versa)
     if (cleanInput.includes(cleanEntryName) || cleanEntryName.includes(cleanInput)) {
-      // Avoid false positive on very short 1-2 character tokens
       if (cleanEntryName.length >= 3 && cleanInput.length >= 3) {
         return true;
       }
@@ -181,7 +247,7 @@ export function checkSpecialGuestInDb(name: string): boolean {
 }
 
 /**
- * Add a new special guest to the database table
+ * Add a new special guest to Cloud Firestore and local cache
  */
 export function addSpecialGuestToDb(
   name: string,
@@ -200,50 +266,91 @@ export function addSpecialGuestToDb(
 
   const updatedTable = [newEntry, ...currentTable];
   saveSpecialGuestsTable(updatedTable);
+
+  // Sync to Cloud Firestore
+  try {
+    setDoc(doc(db, FIRESTORE_COLLECTION, newEntry.id), newEntry).catch(e => {
+      console.warn('[Firebase] Error saving to Firestore', e);
+    });
+  } catch (e) {
+    console.warn('[Firebase] Firestore write failed', e);
+  }
+
   return newEntry;
 }
 
 /**
- * Delete a guest entry from the database table
+ * Delete a guest entry from Cloud Firestore and local cache
  */
 export function deleteSpecialGuestFromDb(id: string): boolean {
   const currentTable = getSpecialGuestsTable();
   const filtered = currentTable.filter(entry => entry.id !== id);
   if (filtered.length !== currentTable.length) {
     saveSpecialGuestsTable(filtered);
+    // Delete from Cloud Firestore
+    try {
+      deleteDoc(doc(db, FIRESTORE_COLLECTION, id)).catch(e => {
+        console.warn('[Firebase] Error deleting from Firestore', e);
+      });
+    } catch (e) {
+      console.warn('[Firebase] Firestore delete failed', e);
+    }
     return true;
   }
   return false;
 }
 
 /**
- * Toggle quiz permission for a guest in the database table
+ * Toggle quiz permission for a guest in Cloud Firestore and local cache
  */
 export function toggleQuizAccessInDb(id: string): boolean {
   const currentTable = getSpecialGuestsTable();
   let toggled = false;
+  let newStatus = false;
   const updated = currentTable.map(entry => {
     if (entry.id === id) {
       toggled = true;
-      return { ...entry, canAccessQuizzes: !entry.canAccessQuizzes };
+      newStatus = !entry.canAccessQuizzes;
+      return { ...entry, canAccessQuizzes: newStatus };
     }
     return entry;
   });
 
   if (toggled) {
     saveSpecialGuestsTable(updated);
+    // Update in Cloud Firestore
+    try {
+      updateDoc(doc(db, FIRESTORE_COLLECTION, id), { canAccessQuizzes: newStatus }).catch(e => {
+        console.warn('[Firebase] Error updating Firestore doc', e);
+      });
+    } catch (e) {
+      console.warn('[Firebase] Firestore update failed', e);
+    }
   }
   return toggled;
 }
 
 /**
- * Reset database table back to initial seed data
+ * Reset database table back to initial seed data in Firestore and local
  */
 export function resetSpecialGuestsTable(): SpecialGuestEntry[] {
   const fresh = [...DEFAULT_SPECIAL_GUESTS];
   saveSpecialGuestsTable(fresh);
+  
+  // Reseed to Cloud Firestore
+  try {
+    DEFAULT_SPECIAL_GUESTS.forEach(async (guest) => {
+      try {
+        await setDoc(doc(db, FIRESTORE_COLLECTION, guest.id), guest);
+      } catch {}
+    });
+  } catch {}
+
   return fresh;
 }
+
+// Pre-initialize on module load
+getSpecialGuestsTable();
 
 // Pre-initialize cache on load
 getSpecialGuestsTable();

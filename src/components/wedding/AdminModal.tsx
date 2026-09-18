@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Check, Trash2, ShieldCheck, Download, Users, Heart, MessageSquare, Database, Crown, Plus, RotateCcw } from 'lucide-react';
+import { X, Check, Trash2, ShieldCheck, Download, Users, Heart, MessageSquare, Database, Crown, Plus, RotateCcw, ExternalLink } from 'lucide-react';
 import { WishRecord, RSVPRecord } from '../../types';
 import { soundManager } from '../../audio/soundManager';
 import {
@@ -9,7 +9,8 @@ import {
   addSpecialGuestToDb,
   deleteSpecialGuestFromDb,
   toggleQuizAccessInDb,
-  resetSpecialGuestsTable
+  resetSpecialGuestsTable,
+  FIREBASE_CONSOLE_URL
 } from '../../services/guestDatabase';
 
 interface AdminModalProps {
@@ -346,15 +347,29 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleResetTable}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 text-xs font-semibold shadow-xs transition"
-                    title="Reset to default seed names"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset Seed Table</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={FIREBASE_CONSOLE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-900 text-xs font-bold shadow-xs transition"
+                      title="Open Cloud Firestore database directly in Firebase Console"
+                    >
+                      <Database className="w-3.5 h-3.5" />
+                      <span>Firebase Console</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={handleResetTable}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 text-xs font-semibold shadow-xs transition"
+                      title="Reset to default seed names"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reset Seed Table</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Add New Special Guest Form */}

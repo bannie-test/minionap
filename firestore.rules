@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    // Special guest roster table
+    match /special_guest_roster/{guestId} {
+      allow read: if true;
+      allow write: if true; // Allow guest table management from admin interface
+    }
+
+    // Wedding wishes guestbook
+    match /wedding_wishes/{wishId} {
+      allow read: if true;
+      allow create: if request.resource.data.guestName is string
+                    && request.resource.data.message is string
+                    && request.resource.data.guestName.size() > 0
+                    && request.resource.data.message.size() > 0;
+      allow update, delete: if true;
+    }
+
+    // Wedding RSVPs
+    match /wedding_rsvps/{rsvpId} {
+      allow read: if true;
+      allow create: if request.resource.data.guestName is string
+                    && request.resource.data.guestCount is number
+                    && request.resource.data.guestName.size() > 0;
+      allow update, delete: if true;
+    }
+
+    // Connection test document
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

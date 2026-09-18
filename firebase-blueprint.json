@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "SpecialGuest": {
+      "title": "SpecialGuest",
+      "description": "Special guest name entry that unlocks VIP trivia quizzes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Normalized guest name / ID" },
+        "name": { "type": "string", "description": "Original display name" },
+        "role": { "type": "string", "description": "VIP / Member / Family role" },
+        "addedAt": { "type": "string", "format": "date-time", "description": "Timestamp when added" },
+        "canSolveQuizzes": { "type": "boolean", "description": "Whether guest has access to quizzes" }
+      },
+      "required": ["id", "name", "canSolveQuizzes"]
+    },
+    "WeddingWish": {
+      "title": "WeddingWish",
+      "description": "Guest congratulations and blessing message",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique message ID" },
+        "guestName": { "type": "string", "description": "Name of the guest" },
+        "message": { "type": "string", "description": "Message content" },
+        "isPrivateName": { "type": "boolean", "description": "Whether the name should be kept private" },
+        "isApproved": { "type": "boolean", "description": "Moderation approval status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp created" }
+      },
+      "required": ["id", "guestName", "message", "isApproved"]
+    },
+    "WeddingRsvp": {
+      "title": "WeddingRsvp",
+      "description": "Wedding guest RSVP response",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique RSVP ID" },
+        "guestName": { "type": "string", "description": "Name of the guest" },
+        "email": { "type": "string", "description": "Email address" },
+        "attendance": { "type": "string", "enum": ["attending", "declined"], "description": "Attendance status" },
+        "guestCount": { "type": "number", "description": "Party headcount" },
+        "dietaryRequirements": { "type": "string", "description": "Dietary requirements or allergies" },
+        "message": { "type": "string", "description": "Note to couple" },
+        "submittedAt": { "type": "string", "format": "date-time", "description": "Timestamp submitted" }
+      },
+      "required": ["id", "guestName", "attendance", "guestCount"]
+    }
+  },
+  "firestore": {
+    "/special_guest_roster/{guestId}": {
+      "schema": { "$ref": "#/entities/SpecialGuest" },
+      "description": "Database table for special guest roster to unlock VIP quizzes"
+    },
+    "/wedding_wishes/{wishId}": {
+      "schema": { "$ref": "#/entities/WeddingWish" },
+      "description": "Guest congratulations and blessing messages for the bride and groom"
+    },
+    "/wedding_rsvps/{rsvpId}": {
+      "schema": { "$ref": "#/entities/WeddingRsvp" },
+      "description": "Guest RSVP submissions and attendance confirmations"
+    }
+  }
+}
