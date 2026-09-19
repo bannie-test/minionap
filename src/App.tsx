@@ -18,8 +18,9 @@ import { RsvpSection } from './components/wedding/RsvpSection';
 import { WishesSection } from './components/wedding/WishesSection';
 import { AdminModal } from './components/wedding/AdminModal';
 import { Collectible, Puzzle, WishRecord, RSVPRecord } from './types';
-import { initialWishes, weddingConfig, isSpecialGuest, allGamePuzzles, specialGuestList } from './config/weddingData';
+import { initialWishes, weddingConfig, isSpecialGuest, allGamePuzzles, specialGuestList, gameCollectibles } from './config/weddingData';
 import { soundManager } from './audio/soundManager';
+import { syncPlayerProgressToFirestore, seedCatalogTablesToFirestore } from './services/firebaseAdminTables';
 import { Heart, Gamepad2, Shield, ArrowUp } from 'lucide-react';
 
 export default function App() {
@@ -41,7 +42,7 @@ export default function App() {
   const [showInventory, setShowInventory] = useState<boolean>(false);
   const [showAdminModal, setShowAdminModal] = useState<boolean>(false);
 
-  // Game Progress State (4 Seasonal Worlds)
+  // Game Progress State (4 Seasonal Worlds - Starts in Winter Wonderland: World 1)
   const [currentWorld, setCurrentWorld] = useState<number>(1);
   const [collectedIds, setCollectedIds] = useState<string[]>([]);
   const [solvedPuzzleIds, setSolvedPuzzleIds] = useState<string[]>([]);
@@ -55,18 +56,26 @@ export default function App() {
   // Load saved session on mount
   useEffect(() => {
     try {
+      // Seed Firestore catalog tables in background
+      seedCatalogTablesToFirestore();
+
       // Check for stored player name
       const savedName = localStorage.getItem('wedding_player_name');
       if (savedName) {
         setPlayerName(savedName);
       }
 
-      // Load game progress
+      // Load game progress (Start in Winter, World 1)
       const savedProgress = localStorage.getItem('wedding_game_progress');
       if (savedProgress) {
         const parsed = JSON.parse(savedProgress);
-        setCurrentWorld(parsed.currentWorld || 1);
-        setCollectedIds(parsed.collectedIds || []);
+        // Ensure starting world is 1 (Winter) on initial launch or fresh session
+        setCurrentWorld(1);
+        // Only keep valid unique collectibles from the 8 real keepsakes
+        const validCollected = Array.from(
+          new Set((parsed.collectedIds || []).filter((id: string) => gameCollectibles.some(c => c.id === id)))
+        ) as string[];
+        setCollectedIds(validCollected);
         setSolvedPuzzleIds(parsed.solvedPuzzleIds || []);
         if (parsed.invitationUnlocked) {
           setInvitationUnlocked(true);
@@ -117,17 +126,29 @@ export default function App() {
     }
   }, []);
 
-  // Save game progress whenever it changes
+  // Save game progress whenever it changes and sync to Firestore
   const saveProgress = (newWorld: number, newCollected: string[], newSolved: string[], unlocked: boolean) => {
     try {
+      const sanitizedCollected = Array.from(
+        new Set(newCollected.filter(id => gameCollectibles.some(c => c.id === id)))
+      );
       const data = {
         currentWorld: newWorld,
-        collectedIds: newCollected,
+        collectedIds: sanitizedCollected,
         solvedPuzzleIds: newSolved,
         invitationUnlocked: unlocked,
         lastPlayedAt: new Date().toISOString()
       };
       localStorage.setItem('wedding_game_progress', JSON.stringify(data));
+
+      // Sync to Firestore player_progress collection
+      syncPlayerProgressToFirestore(
+        playerName || 'Guest',
+        newWorld,
+        sanitizedCollected,
+        newSolved,
+        unlocked
+      );
     } catch {}
   };
 
@@ -210,11 +231,26 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handlePlayGame = () => {
+    setShowLandingModal(false);
+    // Explicitly start with Winter (World 1) as requested by user
+    setCurrentWorld(1);
+    saveProgress(1, collectedIds, solvedPuzzleIds, invitationUnlocked);
+    setTimeout(() => {
+      window.focus();
+    }, 50);
+  };
+
   const handleReplayGame = () => {
     soundManager.playClick();
     soundManager.crossfadeTo('game');
+    setCurrentWorld(1); // Start in Winter as requested by user
+    saveProgress(1, collectedIds, solvedPuzzleIds, invitationUnlocked);
     setActiveChapter('game');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      window.focus();
+    }, 50);
   };
 
   // Wishes Handlers
@@ -470,7 +506,7 @@ export default function App() {
         isOpen={showLandingModal}
         playerName={playerName}
         onPlayerNameChange={handlePlayerNameChange}
-        onPlay={() => setShowLandingModal(false)}
+        onPlay={handlePlayGame}
         onSkip={handleDirectSkipToInvitation}
       />
 

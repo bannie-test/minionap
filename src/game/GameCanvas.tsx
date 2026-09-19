@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Sparkles, FastForward, Backpack, HelpCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Collectible, Puzzle } from '../types';
-import { gameCollectibles, gamePuzzles, fourSeasons } from '../config/weddingData';
+import { gameCollectibles, gamePuzzles, fourSeasons, getCategoryProgress, CategoryProgressItem } from '../config/weddingData';
 import { soundManager } from '../audio/soundManager';
 import { MobileControls } from './MobileControls';
 
@@ -76,6 +76,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     jump: false,
     interact: false
   });
+
+  // Track pause state in a ref so event listeners and animation loop never suffer from stale closures
+  const isPausedRef = useRef(isPaused);
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+    if (isPaused) {
+      keysRef.current = { left: false, right: false, jump: false, interact: false };
+    } else {
+      // Regain focus immediately when modal closes so keyboard inputs respond on first visit
+      window.focus();
+    }
+  }, [isPaused]);
 
   // Track desired spawn position if traveling between gates
   const spawnXRef = useRef<number | null>(null);
@@ -438,7 +450,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   // Handle keyboard inputs
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isPaused) return;
+      if (isPausedRef.current) return;
       soundManager.ensureContext();
 
       if (['ArrowLeft', 'KeyA'].includes(e.code)) {
@@ -497,7 +509,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     };
 
     const updatePhysics = () => {
-      if (isPaused) {
+      if (isPausedRef.current) {
         // Keep player safely stationary and grounded while answering quiz or viewing keepsake
         const p = stateRef.current.player;
         p.vx = 0;
@@ -720,7 +732,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           nearbyPrompt = `Press [E] or tap RETURN to stroll through the Garden Gate`;
           activeCanInteract = true;
 
-          if (keys.interact) {
+          if (keys.interact || retDist < 25) {
             keys.interact = false;
             soundManager.playGateOpen();
             // Traveling back spawns player near the forward gate of previous world
@@ -736,7 +748,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         if (s.forwardGate.isWeddingGate) {
           nearbyPrompt = "Press [E] or tap OPEN to enter the Grand Wedding Gate!";
           activeCanInteract = true;
-          if (keys.interact) {
+          if (keys.interact || gateDist < 30) {
             keys.interact = false;
             p.state = 'cheer';
             onReachGate();
@@ -745,7 +757,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           // Garden Gate: Does NOT fill the name of the next season, per user instructions
           nearbyPrompt = `Press [E] or tap ENTER to stroll through the Garden Gate`;
           activeCanInteract = true;
-          if (keys.interact) {
+          if (keys.interact || gateDist < 30) {
             keys.interact = false;
             soundManager.playGateOpen();
             // Traveling forward spawns player on the left side of next world
@@ -2134,8 +2146,24 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const currentSeason = fourSeasons[currentWorld - 1] || fourSeasons[0];
 
+  // Sanitized unique keepsakes collection capped to valid 8 gameCollectibles
+  const validCollectedIds = Array.from(new Set(collectedIds.filter(id => gameCollectibles.some(c => c.id === id))));
+  const keepsakesCount = Math.min(validCollectedIds.length, 8);
+  const totalKeepsakes = 8;
+  const categoryProgress = getCategoryProgress(validCollectedIds, solvedPuzzleIds);
+  const completedCategoriesCount = categoryProgress.filter((c: CategoryProgressItem) => c.isCompleted).length;
+  const totalCategories = 4;
+
   return (
-    <div ref={containerRef} className="relative w-full h-[520px] sm:h-[580px] bg-stone-900 overflow-hidden select-none">
+    <div
+      ref={containerRef}
+      onClick={() => {
+        // Ensure game canvas receives window key focus when tapped/clicked
+        window.focus();
+      }}
+      className="relative w-full h-[520px] sm:h-[580px] bg-stone-900 overflow-hidden select-none outline-none"
+      tabIndex={0}
+    >
       {/* 2D HTML5 Canvas */}
       <canvas
         ref={canvasRef}
@@ -2150,7 +2178,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           {/* Current Season Badge */}
           <div className="bg-stone-900/85 backdrop-blur-md text-white px-3 py-1.5 rounded-full border border-white/20 shadow-md flex items-center gap-2 text-xs sm:text-sm font-bold">
             <span className="text-base">{currentSeason.icon}</span>
-            <span>{currentSeason.name}</span>
+            <span className="hidden sm:inline">{currentSeason.name}</span>
+            <span className="sm:hidden">{currentSeason.season.charAt(0).toUpperCase() + currentSeason.season.slice(1)}</span>
           </div>
 
           {/* Player Name Badge & VIP Status */}
@@ -2174,7 +2203,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             )}
           </button>
 
-          {/* Keepsakes Inventory Button */}
+          {/* Keepsakes Inventory Button - displays two parts: e.g. 8/8, 4/4 */}
           <button
             id="game-open-inventory-btn"
             onClick={() => {
@@ -2182,10 +2211,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
               onOpenInventory();
             }}
             className="bg-amber-400 hover:bg-amber-500 text-stone-900 font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1.5 text-xs sm:text-sm transition-transform active:scale-95"
-            title="Open Wedding Keepsakes Backpack (Categorized from Quizzes)"
+            title="Open Wedding Keepsakes Backpack (Two parts: Keepsakes and Completed Categories)"
           >
             <Backpack className="w-4 h-4 text-stone-900" />
-            <span>Keepsakes {collectedIds.length}/{gameCollectibles.length}</span>
+            <span>Keepsakes {keepsakesCount}/{totalKeepsakes}, {completedCategoriesCount}/{totalCategories}</span>
           </button>
 
           {/* Quizzes Solved Badge - Clickable to open category keepsakes progress */}
@@ -2196,7 +2225,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
                 soundManager.playClick();
                 onOpenInventory();
               }}
-              className="hidden md:flex items-center gap-1.5 bg-emerald-600/90 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-full text-xs font-semibold shadow-md transition active:scale-95"
+              className="hidden lg:flex items-center gap-1.5 bg-emerald-600/90 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-full text-xs font-semibold shadow-md transition active:scale-95"
               title="Click to view keepsake categories unlocked by quizzes"
             >
               <span>🧩</span>
@@ -2207,8 +2236,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         {/* Right: Seasonal Teleport Portals & Skip Button */}
         <div className="flex items-center gap-1.5 pointer-events-auto">
-          {/* 4 Seasons Portal Tabs */}
-          <div className="hidden lg:flex items-center gap-1 bg-stone-950/70 backdrop-blur-md p-1 rounded-full border border-white/15">
+          {/* 4 Seasons Portal Tabs - accessible on all screen sizes */}
+          <div className="flex items-center gap-1 bg-stone-950/75 backdrop-blur-md p-1 rounded-full border border-white/15">
             {fourSeasons.map((season) => (
               <button
                 key={season.id}
@@ -2216,7 +2245,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
                   soundManager.playClick();
                   onSwitchWorld(season.id, 140);
                 }}
-                className={`px-2.5 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 ${
+                className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold transition flex items-center gap-1 ${
                   currentWorld === season.id
                     ? 'bg-amber-400 text-stone-900 shadow-sm'
                     : 'text-stone-300 hover:text-white hover:bg-white/10'
@@ -2224,7 +2253,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
                 title={`Fast Travel to ${season.name}`}
               >
                 <span>{season.icon}</span>
-                <span>{season.season.charAt(0).toUpperCase() + season.season.slice(1)}</span>
+                <span className="hidden md:inline">{season.season.charAt(0).toUpperCase() + season.season.slice(1)}</span>
               </button>
             ))}
           </div>

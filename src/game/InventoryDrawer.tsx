@@ -24,9 +24,12 @@ export const InventoryDrawer: React.FC<InventoryDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const categoryProgress = getCategoryProgress(collectedIds, solvedPuzzleIds);
-  const totalKeepsakes = gameCollectibles.length;
-  const unlockedCount = collectedIds.length;
+  const validCollectedIds = Array.from(new Set(collectedIds.filter(id => gameCollectibles.some(c => c.id === id))));
+  const categoryProgress = getCategoryProgress(validCollectedIds, solvedPuzzleIds);
+  const totalKeepsakes = 8;
+  const unlockedCount = Math.min(validCollectedIds.length, 8);
+  const completedCategoriesCount = categoryProgress.filter(c => c.isCompleted).length;
+  const totalCategories = 4;
 
   const filteredItems = selectedCategory === 'all'
     ? gameCollectibles
@@ -51,7 +54,7 @@ export const InventoryDrawer: React.FC<InventoryDrawerProps> = ({
                   <span>Wedding Keepsakes</span>
                 </h3>
                 <p className="text-xs text-stone-600 mt-0.5">
-                  <strong className="text-amber-900 font-bold">{unlockedCount} of {totalKeepsakes}</strong> keepsakes unlocked from seasonal quizzes
+                  <strong className="text-amber-900 font-bold">{unlockedCount}/{totalKeepsakes} Keepsakes, {completedCategoriesCount}/{totalCategories} Categories completed</strong>
                 </p>
               </div>
               <button
@@ -122,7 +125,7 @@ export const InventoryDrawer: React.FC<InventoryDrawerProps> = ({
                   : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
               }`}
             >
-              All ({unlockedCount}/{totalKeepsakes})
+              All ({unlockedCount}/{totalKeepsakes}, {completedCategoriesCount}/{totalCategories})
             </button>
             {KEEPSAKE_CATEGORIES.map((cat) => {
               const count = collectedIds.filter(id => {
@@ -156,7 +159,7 @@ export const InventoryDrawer: React.FC<InventoryDrawerProps> = ({
           {/* Keepsakes List */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {filteredItems.map((item) => {
-              const isCollected = collectedIds.includes(item.id);
+              const isCollected = validCollectedIds.includes(item.id);
               const cat = KEEPSAKE_CATEGORIES.find(c => c.id === item.category);
 
               return (

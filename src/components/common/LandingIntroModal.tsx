@@ -25,9 +25,7 @@ export const LandingIntroModal: React.FC<LandingIntroModalProps> = ({
 
   const handleStartPlay = () => {
     if (!playerName.trim()) {
-      setErrorMsg('Please enter your name to start the journey!');
-      soundManager.playWrong();
-      return;
+      onPlayerNameChange('Honored Guest');
     }
     setErrorMsg(null);
     soundManager.ensureContext();
